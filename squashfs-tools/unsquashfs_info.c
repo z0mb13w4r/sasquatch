@@ -143,3 +143,4 @@ void init_info()
 {
 	pthread_create(&info_thread, NULL, info_thrd, NULL);
 }
+

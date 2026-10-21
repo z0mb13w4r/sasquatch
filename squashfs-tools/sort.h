@@ -1,4 +1,4 @@
-#ifndef SORT_H 
+#ifndef SORT_H
 #define SORT_H
 
 /*
@@ -35,3 +35,4 @@ extern void generate_file_priorities(struct dir_info *, int priority,
 	struct stat *);
 extern struct  priority_entry *priority_list[65536];
 #endif
+

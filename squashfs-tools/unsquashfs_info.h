@@ -28,3 +28,4 @@ extern void disable_info();
 extern void update_info(char *);
 extern void init_info();
 #endif
+

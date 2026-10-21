@@ -422,3 +422,4 @@ extern void inswap_le64_num(long long *, int);
 #define SQUASHFS_INSWAP_LONG_LONGS(s, n)
 #endif
 #endif
+

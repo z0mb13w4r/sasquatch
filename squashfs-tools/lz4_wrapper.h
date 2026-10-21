@@ -59,3 +59,4 @@ struct lz4_comp_opts {
 	int flags;
 };
 #endif
+

@@ -33,6 +33,7 @@
 
 #include <sys/sysinfo.h>
 #include <sys/types.h>
+#include <sys/sysmacros.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <limits.h>
@@ -44,13 +45,19 @@ pthread_t *thread, *inflator_thread;
 pthread_mutex_t	fragment_mutex;
 
 /* user options that control parallelisation */
-int processors = -1;
+//int processors = -1;
+// CJH: Temporarily set the default processor count to 1 to prevent threading bug
+//      until a proper fix is implemented.
+int processors = 1;
 
 struct super_block sBlk;
 squashfs_operations s_ops;
-struct compressor *comp;
-
-int bytes = 0, swap, file_count = 0, dir_count = 0, sym_count = 0,
+// CJH: Initialize to NULL
+struct compressor *comp = NULL;
+// CJH: Add override struct
+struct override_table override = { 0 };
+// CJH: Initialize swap to -1
+int bytes = 0, swap = -1, file_count = 0, dir_count = 0, sym_count = 0,
 	dev_count = 0, fifo_count = 0;
 char *inode_table = NULL, *directory_table = NULL;
 struct hash_table_entry *inode_table_hash[65536], *directory_table_hash[65536];
@@ -159,7 +166,7 @@ int shift_overflow(int a, int shift)
 	return (INT_MAX >> shift) < a;
 }
 
- 
+
 int multiply_overflow(int a, int multiplier)
 {
 	return (INT_MAX / multiplier) < a;
@@ -228,7 +235,7 @@ void dump_queue(struct queue *queue)
 {
 	pthread_mutex_lock(&queue->mutex);
 
-	printf("Max size %d, size %d%s\n", queue->size - 1,  
+	printf("Max size %d, size %d%s\n", queue->size - 1,
 		queue->readp <= queue->writep ? queue->writep - queue->readp :
 			queue->size - queue->readp + queue->writep,
 		queue->readp == queue->writep ? " (EMPTY)" :
@@ -330,11 +337,11 @@ struct cache_entry *cache_get(struct cache *cache, long long block, int size)
 {
 	/*
 	 * Get a block out of the cache.  If the block isn't in the cache
- 	 * it is added and queued to the reader() and inflate() threads for
- 	 * reading off disk and decompression.  The cache grows until max_blocks
- 	 * is reached, once this occurs existing discarded blocks on the free
- 	 * list are reused
- 	 */
+	 * it is added and queued to the reader() and inflate() threads for
+	 * reading off disk and decompression.  The cache grows until max_blocks
+	 * is reached, once this occurs existing discarded blocks on the free
+	 * list are reused
+	 */
 	int hash = CALCULATE_HASH(block);
 	struct cache_entry *entry;
 
@@ -346,9 +353,9 @@ struct cache_entry *cache_get(struct cache *cache, long long block, int size)
 
 	if(entry) {
 		/*
- 		 * found the block in the cache.  If the block is currently unused
+		 * found the block in the cache.  If the block is currently unused
 		 * remove it from the free list and increment cache used count.
- 		 */
+		 */
 		if(entry->used == 0) {
 			cache->used ++;
 			remove_free_list(cache, entry);
@@ -357,7 +364,7 @@ struct cache_entry *cache_get(struct cache *cache, long long block, int size)
 		pthread_mutex_unlock(&cache->mutex);
 	} else {
 		/*
- 		 * not in the cache
+		 * not in the cache
 		 *
 		 * first try to allocate new block
 		 */
@@ -403,7 +410,7 @@ struct cache_entry *cache_get(struct cache *cache, long long block, int size)
 		/*
 		 * queue to read thread to read and ultimately (via the
 		 * decompress threads) decompress the buffer
- 		 */
+		 */
 		pthread_mutex_unlock(&cache->mutex);
 		queue_put(to_reader, entry);
 	}
@@ -411,15 +418,15 @@ struct cache_entry *cache_get(struct cache *cache, long long block, int size)
 	return entry;
 }
 
-	
+
 void cache_block_ready(struct cache_entry *entry, int error)
 {
 	/*
 	 * mark cache entry as being complete, reading and (if necessary)
- 	 * decompression has taken place, and the buffer is valid for use.
- 	 * If an error occurs reading or decompressing, the buffer also 
- 	 * becomes ready but with an error...
- 	 */
+	 * decompression has taken place, and the buffer is valid for use.
+	 * If an error occurs reading or decompressing, the buffer also
+	 * becomes ready but with an error...
+	 */
 	pthread_mutex_lock(&entry->cache->mutex);
 	entry->pending = FALSE;
 	entry->error = error;
@@ -459,10 +466,10 @@ void cache_block_put(struct cache_entry *entry)
 {
 	/*
 	 * finished with this cache entry, once the usage count reaches zero it
- 	 * can be reused and is put onto the free list.  As it remains
- 	 * accessible via the hash table it can be found getting a new lease of
- 	 * life before it is reused.
- 	 */
+	 * can be reused and is put onto the free list.  As it remains
+	 * accessible via the hash table it can be found getting a new lease of
+	 * life before it is reused.
+	 */
 	pthread_mutex_lock(&entry->cache->mutex);
 
 	entry->used --;
@@ -539,7 +546,7 @@ int print_filename(char *pathname, struct inode *inode)
 			userstr = dummy;
 	} else
 		userstr = user->pw_name;
-		 
+
 	group = getgrgid(inode->gid);
 	if(group == NULL) {
 		int res = snprintf(dummy2, 12, "%d", inode->gid);
@@ -571,7 +578,7 @@ int print_filename(char *pathname, struct inode *inode)
 		case S_IFCHR:
 		case S_IFBLK:
 			padchars = TOTALCHARS - strlen(userstr) -
-				strlen(groupstr) - 7; 
+				strlen(groupstr) - 7;
 
 			printf("%*s%3d,%3d ", padchars > 0 ? padchars : 0, " ",
 				(int) inode->data >> 8, (int) inode->data &
@@ -586,10 +593,10 @@ int print_filename(char *pathname, struct inode *inode)
 	if((inode->mode & S_IFMT) == S_IFLNK)
 		printf(" -> %s", inode->symlink);
 	printf("\n");
-		
+
 	return 1;
 }
-	
+
 
 void add_entry(struct hash_table_entry *hash_table[], long long start,
 	int bytes)
@@ -662,12 +669,12 @@ int read_block(int fd, long long start, long long *next, int expected,
 	unsigned short c_byte;
 	int offset = 2, res, compressed;
 	int outlen = expected ? expected : SQUASHFS_METADATA_SIZE;
-	
+
 	if(swap) {
 		if(read_fs_bytes(fd, start, 2, &c_byte) == FALSE)
 			goto failed;
 		c_byte = (c_byte >> 8) | ((c_byte & 0xff) << 8);
-	} else 
+	} else
 		if(read_fs_bytes(fd, start, 2, &c_byte) == FALSE)
 			goto failed;
 
@@ -701,8 +708,9 @@ int read_block(int fd, long long start, long long *next, int expected,
 			outlen, &error);
 
 		if(res == -1) {
-			ERROR("%s uncompress failed with error code %d\n",
-				comp->name, error);
+            // CJH: Compression errors are displayed elsewhere
+			//ERROR("%s uncompress failed with error code %d\n",
+			//	comp->name, error);
 			goto failed;
 		}
 	} else {
@@ -720,7 +728,10 @@ int read_block(int fd, long long start, long long *next, int expected,
 	 * is of the expected size
 	 */
 	if(expected && expected != res)
+    {
+        ERROR("Decompressed size did not match the expected size! [%d != %d]\n", res, expected);
 		return 0;
+    }
 	else
 		return res;
 
@@ -747,8 +758,9 @@ int read_data_block(long long start, unsigned int size, char *block)
 			block_size, &error);
 
 		if(res == -1) {
-			ERROR("%s uncompress failed with error code %d\n",
-				comp->name, error);
+            // CJH: Compression errors are displayed elsewhere
+			//ERROR("%s uncompress failed with error code %d\n",
+			//	comp->name, error);
 			goto failed;
 		}
 
@@ -803,7 +815,7 @@ int read_inode_table(long long start, long long end)
 			ERROR("read_inode_table: metadata block should be %d "
 				"bytes in length, it is %d bytes\n",
 				SQUASHFS_METADATA_SIZE, res);
-			
+
 			goto failed;
 		}
 	}
@@ -1016,9 +1028,9 @@ int write_file(struct inode *inode, char *pathname)
 
 	/*
 	 * the writer thread is queued a squashfs_file structure describing the
- 	 * file.  If the file has one or more blocks or a fragment they are
- 	 * queued separately (references to blocks in the cache).
- 	 */
+	 * file.  If the file has one or more blocks or a fragment they are
+	 * queued separately (references to blocks in the cache).
+	 */
 	queue_file(pathname, file_fd, inode);
 
 	for(i = 0; i < inode->blocks; i++) {
@@ -1102,7 +1114,7 @@ int create_inode(char *pathname, struct inode *i)
 			}
 
 			write_xattr(pathname, i->xattr);
-	
+
 			if(root_process) {
 				if(lchown(pathname, i->uid, i->gid) == -1)
 					ERROR("create_inode: failed to change "
@@ -1113,10 +1125,10 @@ int create_inode(char *pathname, struct inode *i)
 
 			sym_count ++;
 			break;
- 		case SQUASHFS_BLKDEV_TYPE:
-	 	case SQUASHFS_CHRDEV_TYPE:
- 		case SQUASHFS_LBLKDEV_TYPE:
-	 	case SQUASHFS_LCHRDEV_TYPE: {
+		case SQUASHFS_BLKDEV_TYPE:
+		case SQUASHFS_CHRDEV_TYPE:
+		case SQUASHFS_LBLKDEV_TYPE:
+		case SQUASHFS_LCHRDEV_TYPE: {
 			int chrdev = i->type == SQUASHFS_CHRDEV_TYPE;
 			TRACE("create_inode: dev, rdev 0x%llx\n", i->data);
 
@@ -1318,7 +1330,7 @@ struct pathname *add_path(struct pathname *paths, char *target, char *alltarget)
 		paths->name = realloc(paths->name, (i + 1) *
 			sizeof(struct path_entry));
 		if(paths->name == NULL)
-			EXIT_UNSQUASH("Out of memory in add_path\n");	
+			EXIT_UNSQUASH("Out of memory in add_path\n");
 		paths->name[i].name = targname;
 		paths->name[i].paths = NULL;
 		if(use_regex) {
@@ -1563,7 +1575,7 @@ void dir_scan(char *parent_name, unsigned int start_block, unsigned int offset,
 					strerror(errno));
 				squashfs_closedir(dir);
 				return;
-			} 
+			}
 
 			/*
 			 * Try to change permissions of existing directory so
@@ -1622,7 +1634,7 @@ void dir_scan(char *parent_name, unsigned int start_block, unsigned int offset,
 	dir_count ++;
 }
 
-
+// CJH: s/TRACE/printf/g
 void squashfs_stat(char *source)
 {
 	time_t mkfs_time = (time_t) sBlk.s.mkfs_time;
@@ -1640,9 +1652,10 @@ void squashfs_stat(char *source)
 
 	printf("Creation or last append time %s", mkfs_str ? mkfs_str :
 		"failed to get time\n");
-	printf("Filesystem size %.2f Kbytes (%.2f Mbytes)\n",
-		sBlk.s.bytes_used / 1024.0, sBlk.s.bytes_used /
-		(1024.0 * 1024.0));
+    // CJH: Added bytes output
+	printf("Filesystem size %.2f Kbytes (%.2f Mbytes) (%lld [0x%llX] bytes)\n",
+		(sBlk.s.bytes_used / 1024.0), (sBlk.s.bytes_used / (1024.0 * 1024.0)), 
+        sBlk.s.bytes_used, sBlk.s.bytes_used);
 
 	if(sBlk.s.s_major == 4) {
 		printf("Compression %s\n", comp->name);
@@ -1714,25 +1727,25 @@ void squashfs_stat(char *source)
 		printf("Number of gids %d\n", sBlk.no_guids);
 	}
 
-	TRACE("sBlk.s.inode_table_start 0x%llx\n", sBlk.s.inode_table_start);
-	TRACE("sBlk.s.directory_table_start 0x%llx\n",
+	printf("sBlk.s.inode_table_start 0x%llx\n", sBlk.s.inode_table_start);
+	printf("sBlk.s.directory_table_start 0x%llx\n",
 		sBlk.s.directory_table_start);
 
 	if(sBlk.s.s_major > 1)
-		TRACE("sBlk.s.fragment_table_start 0x%llx\n\n",
+		printf("sBlk.s.fragment_table_start 0x%llx\n",
 			sBlk.s.fragment_table_start);
 
 	if(sBlk.s.s_major > 2)
-		TRACE("sBlk.s.lookup_table_start 0x%llx\n\n",
+		printf("sBlk.s.lookup_table_start 0x%llx\n",
 			sBlk.s.lookup_table_start);
 
 	if(sBlk.s.s_major == 4) {
-		TRACE("sBlk.s.id_table_start 0x%llx\n", sBlk.s.id_table_start);
-		TRACE("sBlk.s.xattr_id_table_start 0x%llx\n",
+		printf("sBlk.s.id_table_start 0x%llx\n", sBlk.s.id_table_start);
+		printf("sBlk.s.xattr_id_table_start 0x%llx\n",
 			sBlk.s.xattr_id_table_start);
 	} else {
-		TRACE("sBlk.uid_start 0x%llx\n", sBlk.uid_start);
-		TRACE("sBlk.guid_start 0x%llx\n", sBlk.guid_start);
+		printf("sBlk.uid_start 0x%llx\n", sBlk.uid_start);
+		printf("sBlk.guid_start 0x%llx\n", sBlk.guid_start);
 	}
 }
 
@@ -1745,9 +1758,11 @@ int check_compression(struct compressor *comp)
 	if(!comp->supported) {
 		ERROR("Filesystem uses %s compression, this is "
 			"unsupported by this version\n", comp->name);
-		ERROR("Decompressors available:\n");
-		display_compressors("", "");
-		return 0;
+        // CJH: Try to continue anyway
+		//ERROR("Decompressors available:\n");
+		//display_compressors("", "");
+		//return 0;
+        return 1;
 	}
 
 	/*
@@ -1777,17 +1792,74 @@ int read_super(char *source)
 {
 	squashfs_super_block_3 sBlk_3;
 	struct squashfs_super_block sBlk_4;
+    // CJH: Added this structure for auto-swap detection
+    struct squashfs_generic_super_block generic = { 0 };
+
+    // CJH: Perform swap auto-detection
+    if(swap == -1)
+    {
+        read_fs_bytes(fd, SQUASHFS_START, sizeof(struct squashfs_generic_super_block),
+            &generic);
+        /*
+         * If the major version is greater than or less than the min/max version numbers
+         * or if the least significant bytes of the inode count field is 0, then the
+         * image endianess is probably opposite of the host system.
+         *
+         * Note that these are the only fields besides s_magic that are common among
+         * all versions of the SquashFS super block structures, and s_magic cannot
+         * be relied on as it is commonly mucked with by vendors.
+         */
+        if(generic.s_major < SQUASHFS_MIN_VERSION ||
+           generic.s_major > SQUASHFS_MAX_VERSION ||
+           (generic.inodes & 0xFF) == 0)
+        {
+            ERROR("SquashFS version [%d.%d] / inode count [%d] suggests a SquashFS image "
+                  "of a different endianess\n", generic.s_major, generic.s_minor, generic.inodes);
+            swap = 1;
+        }
+        else
+        {
+            ERROR("SquashFS version [%d.%d] / inode count [%d] suggests a SquashFS image "
+                  "of the same endianess\n", generic.s_major, generic.s_minor, generic.inodes);
+            swap = 0;
+        }
+    }
+
+    // CJH: Warn if SquashFS magic doesn't look correct
+    if(generic.s_magic != SQUASHFS_MAGIC && generic.s_magic != SQUASHFS_MAGIC_SWAP)
+    {
+        ERROR("Non-standard SquashFS Magic: %.4s\n", (char *) &generic.s_magic);
+    }
+
+    // CJH: Notify if endianess is different
+    if(swap)
+        ERROR("Reading a different endian SQUASHFS filesystem on %s\n", source);
 
 	/*
 	 * Try to read a Squashfs 4 superblock
 	 */
 	read_fs_bytes(fd, SQUASHFS_START, sizeof(struct squashfs_super_block),
 		&sBlk_4);
-	swap = sBlk_4.s_magic != SQUASHFS_MAGIC;
+	// CJH: swap detection already done generically above
+    //swap = sBlk_4.s_magic != SQUASHFS_MAGIC;
 	SQUASHFS_INSWAP_SUPER_BLOCK(&sBlk_4);
 
+    /*
+     * CJH: Don't consider it an error if SQUASHFS_MAGIC doesn't match
 	if(sBlk_4.s_magic == SQUASHFS_MAGIC && sBlk_4.s_major == 4 &&
 			sBlk_4.s_minor == 0) {
+     */
+
+     // CJH: Added s_major override
+     if((sBlk_4.s_major == 4 && sBlk_4.s_minor == 0) ||
+        (override.s_major == 4)) {
+
+        // CJH: Update super struct with override values
+        if(override.s_major)
+            sBlk_4.s_major = override.s_major;
+        if(override.s_minor)
+            sBlk_4.s_minor = override.s_minor;
+
 		s_ops.squashfs_opendir = squashfs_opendir_4;
 		s_ops.read_fragment = read_fragment_4;
 		s_ops.read_fragment_table = read_fragment_table_4;
@@ -1799,20 +1871,27 @@ int read_super(char *source)
 		/*
 		 * Check the compression type
 		 */
+        // CJH: Check to see if comp has alredy been defined
+		if(!comp)
+        {
 		comp = lookup_compressor_id(sBlk.s.compression);
+        }
 		return TRUE;
 	}
 
 	/*
- 	 * Not a Squashfs 4 superblock, try to read a squashfs 3 superblock
- 	 * (compatible with 1 and 2 filesystems)
- 	 */
+	 * Not a Squashfs 4 superblock, try to read a squashfs 3 superblock
+	 * (compatible with 1 and 2 filesystems)
+	 */
 	read_fs_bytes(fd, SQUASHFS_START, sizeof(squashfs_super_block_3),
 		&sBlk_3);
 
 	/*
 	 * Check it is a SQUASHFS superblock
 	 */
+	/*
+	 * CJH: swap detection already done generically above
+     *
 	swap = 0;
 	if(sBlk_3.s_magic != SQUASHFS_MAGIC) {
 		if(sBlk_3.s_magic == SQUASHFS_MAGIC_SWAP) {
@@ -1828,6 +1907,13 @@ int read_super(char *source)
 			goto failed_mount;
 		}
 	}
+    */
+    if(swap)
+    {
+        squashfs_super_block_3 sblk;
+        SQUASHFS_SWAP_SUPER_BLOCK_3(&sblk, &sBlk_3);
+        memcpy(&sBlk_3, &sblk, sizeof(squashfs_super_block_3));
+    }
 
 	sBlk.s.s_magic = sBlk_3.s_magic;
 	sBlk.s.inodes = sBlk_3.inodes;
@@ -1850,14 +1936,22 @@ int read_super(char *source)
 	sBlk.guid_start = sBlk_3.guid_start;
 	sBlk.s.xattr_id_table_start = SQUASHFS_INVALID_BLK;
 
+    // CJH: Update super struct with override values
+    if(override.s_major)
+        sBlk.s.s_major = override.s_major;
+    if(override.s_minor)
+        sBlk.s.s_minor = override.s_minor;
+
 	/* Check the MAJOR & MINOR versions */
-	if(sBlk.s.s_major == 1 || sBlk.s.s_major == 2) {
+    // CJH: Added s_major override
+	if((sBlk.s.s_major == 1 || sBlk.s.s_major == 2)) {
 		sBlk.s.bytes_used = sBlk_3.bytes_used_2;
 		sBlk.uid_start = sBlk_3.uid_start_2;
 		sBlk.guid_start = sBlk_3.guid_start_2;
 		sBlk.s.inode_table_start = sBlk_3.inode_table_start_2;
 		sBlk.s.directory_table_start = sBlk_3.directory_table_start_2;
-		
+
+        // CJH: Added s_major override
 		if(sBlk.s.s_major == 1) {
 			sBlk.s.block_size = sBlk_3.block_size_1;
 			sBlk.s.fragment_table_start = sBlk.uid_start;
@@ -1893,7 +1987,11 @@ int read_super(char *source)
 	/*
 	 * 1.x, 2.x and 3.x filesystems use gzip compression.
 	 */
+    // CJH: Check to see if comp has alredy been defined
+    if(!comp)
+    {
 	comp = lookup_compressor("gzip");
+    }
 	return TRUE;
 
 failed_mount:
@@ -1956,7 +2054,7 @@ struct pathname *process_extract_files(struct pathname *path, char *filename)
 	fclose(fd);
 	return path;
 }
-		
+
 
 /*
  * reader thread.  This thread processes read requests queued by the
@@ -1974,7 +2072,7 @@ void *reader(void *arg)
 			/*
 			 * queue successfully read block to the inflate
 			 * thread(s) for further processing
- 			 */
+			 */
 			queue_put(to_inflate, entry);
 		else
 			/*
@@ -2106,17 +2204,21 @@ void *inflator(void *arg)
 			SQUASHFS_COMPRESSED_SIZE_BLOCK(entry->size), block_size,
 			&error);
 
+        /* CJH: Compression errors are displayed elsewhere
 		if(res == -1)
 			ERROR("%s uncompress failed with error code %d\n",
 				comp->name, error);
 		else
 			memcpy(entry->data, tmp, res);
+        */
+        if(res != -1)
+            memcpy(entry->data, tmp, res);
 
 		/*
 		 * block has been either successfully decompressed, or an error
- 		 * occurred, clear pending flag, set error appropriately and
- 		 * wake up any threads waiting on this block
- 		 */ 
+		 * occurred, clear pending flag, set error appropriately and
+		 * wake up any threads waiting on this block
+		 */
 		cache_block_ready(entry, res == -1);
 	}
 }
@@ -2480,7 +2582,7 @@ int parse_number(char *arg, int *res)
 	printf("unsquashfs version 4.3 (2014/05/12)\n");\
 	printf("copyright (C) 2014 Phillip Lougher "\
 		"<phillip@squashfs.org.uk>\n\n");\
-    	printf("This program is free software; you can redistribute it and/or"\
+	printf("This program is free software; you can redistribute it and/or"\
 		"\n");\
 	printf("modify it under the terms of the GNU General Public License"\
 		"\n");\
@@ -2505,11 +2607,14 @@ int main(int argc, char *argv[])
 	int fragment_buffer_size = FRAGMENT_BUFFER_DEFAULT;
 	int data_buffer_size = DATA_BUFFER_DEFAULT;
 
+    // CJH: Initialize verbosity to FALSE
+    verbose = FALSE;
+
 	pthread_mutex_init(&screen_mutex, NULL);
 	root_process = geteuid() == 0;
 	if(root_process)
 		umask(0);
-	
+
 	for(i = 1; i < argc; i++) {
 		if(*argv[i] != '-')
 			break;
@@ -2546,7 +2651,7 @@ int main(int argc, char *argv[])
 			dest = argv[i];
 		} else if(strcmp(argv[i], "-processors") == 0 ||
 				strcmp(argv[i], "-p") == 0) {
-			if((++i == argc) || 
+			if((++i == argc) ||
 					!parse_number(argv[i],
 						&processors)) {
 				ERROR("%s: -processors missing or invalid "
@@ -2611,6 +2716,83 @@ int main(int argc, char *argv[])
 		} else if(strcmp(argv[i], "-regex") == 0 ||
 				strcmp(argv[i], "-r") == 0)
 			use_regex = TRUE;
+        // CJH: Added -comp, -be, -le, -major, -minor options
+        else if(strcmp(argv[i], "-c") == 0 ||
+                strcmp(argv[i], "-comp") == 0) {
+            if(++i == argc) {
+                fprintf(stderr, "%s: -comp missing compression option\n",
+                    argv[0]);
+                exit(1);
+            }
+            comp = lookup_compressor(argv[i]);
+        } else if(strcmp(argv[i], "-major") == 0) {
+            if(++i == argc) {
+                fprintf(stderr, "%s: -major missing version option\n",
+                    argv[0]);
+                exit(1);
+            }
+            override.s_major = atoi(argv[i]);
+        } else if(strcmp(argv[i], "-minor") == 0) {
+            if(++i == argc) {
+                fprintf(stderr, "%s: -minor missing version option\n",
+                    argv[0]);
+                exit(1);
+            }
+            override.s_minor = atoi(argv[i]);
+        } else if(strcmp(argv[i], "-lc") == 0) {
+            if(++i == argc) {
+                fprintf(stderr, "%s: -lc missing value option\n",
+                    argv[0]);
+                exit(1);
+            }
+            override.lc.value = atoi(argv[i]);
+            override.lc.set = TRUE;
+        } else if(strcmp(argv[i], "-lp") == 0) {
+            if(++i == argc) {
+                fprintf(stderr, "%s: -lp missing value option\n",
+                    argv[0]);
+                exit(1);
+            }
+            override.lp.value = atoi(argv[i]);
+            override.lp.set = TRUE;
+        } else if(strcmp(argv[i], "-pb") == 0) {
+            if(++i == argc) {
+                fprintf(stderr, "%s: -pb missing value option\n",
+                    argv[0]);
+                exit(1);
+            }
+            override.pb.value = atoi(argv[i]);
+            override.pb.set = TRUE;
+        } else if(strcmp(argv[i], "-dict") == 0) {
+            if(++i == argc) {
+                fprintf(stderr, "%s: -dict missing value option\n",
+                    argv[0]);
+                exit(1);
+            }
+            override.dictionary_size.value = atoi(argv[i]);
+            override.dictionary_size.set = TRUE;
+        } else if(strcmp(argv[i], "-lzma-offset") == 0) {
+            if(++i == argc) {
+                fprintf(stderr, "%s: -lzma-offset missing value option\n",
+                    argv[0]);
+                exit(1);
+            }
+            override.offset.value = atoi(argv[i]);
+            override.offset.set = TRUE;
+        } else if(strcmp(argv[i], "-be") == 0)
+#if __BYTE_ORDER == __BIG_ENDIAN
+            swap = 0;
+#else
+            swap = 1;
+#endif
+        else if(strcmp(argv[i], "-le") == 0)
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+            swap = 0;
+#else
+            swap = 1;
+#endif
+        else if(strcmp(argv[i], "-trace") == 0)
+            verbose = TRUE;
 		else
 			goto options;
 	}
@@ -2674,6 +2856,22 @@ options:
 				"regular expressions\n");
 			ERROR("\t\t\t\trather than use the default shell "
 				"wildcard\n\t\t\t\texpansion (globbing)\n");
+            // CJH: Added -comp, -be, -le, -major, -minor, -trace and lzma options help output
+            ERROR("\n");
+            ERROR("\t-trace\t\t\tEnable verbose trace output\n");
+            ERROR("\t-lc <value>\t\tSet the lzma-adaptive lc parameter [0-4]\n");
+            ERROR("\t-lp <value>\t\tSet the lzma-adaptive lp parameter [0-4]\n");
+            ERROR("\t-pb <value>\t\tSet the lzma-adaptive pb parameter [0-8]\n");
+            ERROR("\t-dict <value>\t\tSet the lzma-adaptive dictionary size\n");
+            ERROR("\t-lzma-offset <value>\tSet the lzma-adaptive LZMA data offset\n");
+            ERROR("\t-major <version>\tManually set the SquashFS major "
+                "version number\n");
+            ERROR("\t-minor <version>\tManually set the SquashFS minor "
+                "version number\n");
+            ERROR("\t-be\t\t\tTreat the filesystem as big endian\n");
+            ERROR("\t-le\t\t\tTreat the filesystem as little endian\n");
+			ERROR("\t-c[omp] <decompressor>\tSpecify the "
+				"decompressor to use\n");
 			ERROR("\nDecompressors available:\n");
 			display_compressors("", "");
 		}
@@ -2812,3 +3010,4 @@ options:
 
 	return 0;
 }
+

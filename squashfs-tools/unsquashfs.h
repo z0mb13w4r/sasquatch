@@ -176,7 +176,7 @@ struct dir_ent	{
 
 struct dir {
 	int		dir_count;
-	int 		cur_entry;
+	int		cur_entry;
 	unsigned int	mode;
 	uid_t		uid;
 	gid_t		guid;
@@ -276,3 +276,4 @@ extern struct dir *squashfs_opendir_4(unsigned int, unsigned int,
 	struct inode **);
 extern int read_uids_guids_4();
 #endif
+

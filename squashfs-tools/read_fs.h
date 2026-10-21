@@ -32,3 +32,4 @@ int *, int *, long long *, unsigned int *, unsigned int *, unsigned int *,
 unsigned int *, void (push_directory_entry)(char *, squashfs_inode, int, int),
 struct squashfs_fragment_entry **, squashfs_inode **);
 #endif
+

@@ -330,7 +330,7 @@ int read_pseudo_def(char *def)
 		default:
 			ERROR("Read filename, type, mode and uid, but failed "
 				"to read or match gid\n");
-			break; 
+			break;
 		}
 		goto error;
 	}
@@ -354,8 +354,8 @@ int read_pseudo_def(char *def)
 					"and major, but failed to read  or "
 					"match minor\n");
 			goto error;
-		}	
-		
+		}
+
 		if(major > 0xfff) {
 			ERROR("Major %d out of range\n", major);
 			goto error;
@@ -385,7 +385,7 @@ int read_pseudo_def(char *def)
 			ERROR("Expected command, which can be an executable "
 				"or a piece of shell script\n");
 			goto error;
-		}	
+		}
 		break;
 	default:
 		ERROR("Unsupported type %c\n", type);
@@ -413,7 +413,7 @@ int read_pseudo_def(char *def)
 			goto error;
 		}
 	}
-		
+
 	gid = strtoll(sgid, &ptr, 10);
 	if(*ptr == '\0') {
 		if(gid < 0 || gid > ((1LL << 32) - 1)) {
@@ -525,3 +525,4 @@ void dump_pseudos()
 {
 }
 #endif
+

@@ -62,11 +62,11 @@ static int lzma_compress(void *dummy, void *dest, void *src,  int size,
 
 	if(res == LZMA_STREAM_END) {
 		/*
-	 	 * Fill in the 8 byte little endian uncompressed size field in
+		 * Fill in the 8 byte little endian uncompressed size field in
 		 * the LZMA header.  8 bytes is excessively large for squashfs
 		 * but this is the standard LZMA header and which is expected by
 		 * the kernel code
-	 	 */
+		 */
 
 		d[LZMA_PROPS_SIZE] = size & 255;
 		d[LZMA_PROPS_SIZE + 1] = (size >> 8) & 255;
@@ -82,8 +82,8 @@ static int lzma_compress(void *dummy, void *dest, void *src,  int size,
 
 	if(res == LZMA_OK)
 		/*
-	 	 * Output buffer overflow.  Return out of buffer space
-	 	 */
+		 * Output buffer overflow.  Return out of buffer space
+		 */
 		return 0;
 
 failed:

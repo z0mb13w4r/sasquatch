@@ -151,3 +151,4 @@ extern unsigned int get_guid(unsigned int);
 extern int read_bytes(int, void *, int);
 extern unsigned short get_checksum_mem(char *, int);
 #endif
+

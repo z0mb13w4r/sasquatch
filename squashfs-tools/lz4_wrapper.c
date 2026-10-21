@@ -72,7 +72,7 @@ static int lz4_options(char *argv[], int argc)
  * Currently LZ4 always returns a comp_opts structure, with
  * the version indicating LZ4_LEGACY stream fomat.  This is to
  * easily accomodate changes in the kernel code to different
- * stream formats 
+ * stream formats
  */
 static void *lz4_dump_options(int block_size, int *size)
 {
@@ -217,7 +217,7 @@ void lz4_display_options(void *buffer, int size)
 failed:
 	fprintf(stderr, "lz4: error reading stored compressor options from "
 		"filesystem!\n");
-}	
+}
 
 
 static int lz4_compress(void *strm, void *dest, void *src,  int size,
@@ -232,14 +232,14 @@ static int lz4_compress(void *strm, void *dest, void *src,  int size,
 
 	if(res == 0) {
 		/*
-	 	 * Output buffer overflow.  Return out of buffer space
-	 	 */
+		 * Output buffer overflow.  Return out of buffer space
+		 */
 		return 0;
 	} else if(res < 0) {
 		/*
-	 	 * All other errors return failure, with the compressor
-	 	 * specific error code in *error
-	 	 */
+		 * All other errors return failure, with the compressor
+		 * specific error code in *error
+		 */
 		*error = res;
 		return -1;
 	}
@@ -281,3 +281,4 @@ struct compressor lz4_comp_ops = {
 	.name = "lz4",
 	.supported = 1
 };
+

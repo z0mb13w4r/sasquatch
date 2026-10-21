@@ -32,3 +32,4 @@ extern void disable_progress_bar();
 extern void init_progress_bar();
 extern void set_progressbar_state(int);
 #endif
+

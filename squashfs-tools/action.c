@@ -70,7 +70,7 @@ static struct token_entry token_table[] = {
 	{ "!", TOK_NOT, 1 },
 	{ ",", TOK_COMMA, 1 },
 	{ "@", TOK_AT, 1},
-	{ " ", 	TOK_WHITE_SPACE, 1 },
+	{ " ",	TOK_WHITE_SPACE, 1 },
 	{ "\t ", TOK_WHITE_SPACE, 1 },
 	{ "", -1, 0 }
 };
@@ -336,7 +336,7 @@ static struct expr *parse_test(char *name)
 	if (test->parse_args) {
 		int res = test->parse_args(test, &expr->atom);
 
-		if (res == 0)		
+		if (res == 0)
 			goto failed;
 	}
 
@@ -406,7 +406,7 @@ static struct expr *parse_expr(int subexp)
 			}
 			break;
 		}
-		
+
 		if (op != TOK_AND && op != TOK_OR) {
 			free_parse_tree(expr);
 			SYNTAX_ERROR("Unexpected token \"%s\", expected "
@@ -525,7 +525,7 @@ skip_args:
 						TOK_TO_STR(token, string));
 		goto failed;
 	}
-	
+
 	expr = parse_expr(0);
 
 	if (expr == NULL)
@@ -555,7 +555,7 @@ skip_args:
 		spec_count = other_count ++;
 		spec_list = &other_spec;
 	}
-	
+
 	*spec_list = realloc(*spec_list, (spec_count + 1) *
 					sizeof(struct action));
 	if (*spec_list == NULL)
@@ -611,7 +611,7 @@ static int eval_expr(struct expr *expr, struct action_data *action_data)
  *	action(arg1,arg2)@expr(arg1,arg2)....
  *
  * Actions can be split across multiple lines using "\".
- * 
+ *
  * Blank lines and comment lines indicated by # are supported.
  */
 int read_action_file(char *filename)
@@ -693,7 +693,7 @@ void *get_frag_action(void *fragment)
 
 	if (fragment == &def_fragment)
 		action = &fragment_spec[0] - 1;
-	else 
+	else
 		action = fragment - offsetof(struct action, data);
 
 	if (++action == spec_list_end)
@@ -1031,7 +1031,7 @@ parse_operation:
 
 	/* Parse PERMS */
 	if (*arg == 'u' || *arg == 'g' || *arg == 'o') {
- 		/* PERMS = [ugo] */
+		/* PERMS = [ugo] */
 		mode = - *arg;
 		if (*++arg != '\0') {
 			SYNTAX_ERROR("Action mode: permission 'u', 'g' or 'o' "
@@ -1039,7 +1039,7 @@ parse_operation:
 			goto failed;
 		}
 	} else {
- 		/* PERMS = [rwxXst]+ */
+		/* PERMS = [rwxXst]+ */
 		while(*arg != '\0') {
 			switch(*arg) {
 			case 'r':
@@ -1262,7 +1262,7 @@ int eval_empty_actions(struct dir_ent *dir_ent)
 		if ((data->val == EMPTY_EXCLUDED && !dir->excluded) ||
 				(data->val == EMPTY_SOURCE && dir->excluded))
 			continue;
-		
+
 		match = eval_expr(empty_spec[i].expr, &action_data);
 	}
 
@@ -1413,7 +1413,7 @@ void eval_move(struct action_data *action_data, struct move_ent *move,
 		 * Multiple move actions triggering on one file can be merged
 		 * if one is a RENAME and the other is a MOVE.  Multiple RENAMEs
 		 * can only merge if they're doing the same thing
-	 	 */
+		 */
 		if(move->ops & ACTION_MOVE_RENAME) {
 			if(strcmp(comp, move->name) != 0) {
 				char *conf_path = move_pathname(move);
@@ -1437,7 +1437,7 @@ void eval_move(struct action_data *action_data, struct move_ent *move,
 		 * Multiple move actions triggering on one file can be merged
 		 * if one is a RENAME and the other is a MOVE.  Multiple MOVEs
 		 * can only merge if they're doing the same thing
-	 	 */
+		 */
 		if(move->ops & ACTION_MOVE_MOVE) {
 			if(dest != move->dest) {
 				char *conf_path = move_pathname(move);
@@ -1692,7 +1692,7 @@ void do_move_actions()
  * [size] is either:
  *	'' (nothing), number
  *	'k' or 'K', number * 2^10
- * 	'm' or 'M', number * 2^20
+ *	'm' or 'M', number * 2^20
  *	'g' or 'G', number * 2^30
  */
 static int parse_number(char *start, long long *size, int *range, char **error)
@@ -1806,7 +1806,7 @@ static int parse_range_args(struct test_entry *test, struct atom *atom)
 			"expected\n");
 		return 0;
 	}
- 
+
 	res = parse_number(atom->argv[1], &end, &type, &error);
 	if (res == 0) {
 		TEST_SYNTAX_ERROR(test, 1, "%s\n", error);
@@ -1818,7 +1818,7 @@ static int parse_range_args(struct test_entry *test, struct atom *atom)
 			"expected\n");
 		return 0;
 	}
- 
+
 	range = malloc(sizeof(*range));
 	if (range == NULL)
 		MEM_ERROR();
@@ -1866,19 +1866,19 @@ static int NAME##_fn(struct atom *atom, struct action_data *action_data) \
 	} \
 	\
 	return match; \
-	})	
+	})
 
 
 /*
  * Generic test code macro testing VAR for range [x, y] (value between x and y
  * inclusive).
- */	
+ */
 #define TEST_VAR_RANGE_FN(NAME, MATCH, VAR) TEST_FN(NAME##_range, MATCH, \
 	{ \
 	struct test_range_args *range = atom->data; \
 	\
 	return range->start <= VAR && VAR <= range->end; \
-	})	
+	})
 
 
 /*
@@ -1949,7 +1949,7 @@ static char *get_start(char *s, int n)
 
 	return s;
 }
-	
+
 
 static int subpathname_fn(struct atom *atom, struct action_data *action_data)
 {
@@ -2038,7 +2038,7 @@ failed:
 		"'c', 'b', 'l', 's' or 'p'\n");
 	return 0;
 }
-	
+
 
 static int type_fn(struct atom *atom, struct action_data *action_data)
 {
@@ -2126,7 +2126,7 @@ static int file_fn(struct atom *atom, struct action_data *action_data)
 
 	/*
 	 * Parent process.  Read stdout from file command
- 	 */
+	 */
 	close(pipefd[1]);
 
 	do {
@@ -2151,7 +2151,7 @@ static int file_fn(struct atom *atom, struct action_data *action_data)
 
 	if (res == -1)
 		BAD_ERROR("file_fn waitpid failed\n");
- 
+
 	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
 		BAD_ERROR("file_fn file returned error\n");
 
@@ -2220,14 +2220,14 @@ static int exec_fn(struct atom *atom, struct action_data *action_data)
 	}
 
 	/*
-	 * Parent process. 
- 	 */
+	 * Parent process.
+	 */
 
 	res = waitpid(child,  &status, 0);
 
 	if (res == -1)
 		BAD_ERROR("exec_fn waitpid failed\n");
- 
+
 	return WIFEXITED(status) ? WEXITSTATUS(status) == 0 : 0;
 }
 
@@ -2340,7 +2340,7 @@ static struct action_entry action_table[] = {
 						no_frag_action},
 	{ "always-use-fragments", ALWAYS_FRAGS_ACTION, 0, ACTION_REG, NULL,
 						always_frag_action},
-	{ "dont-always-use-fragments", NO_ALWAYS_FRAGS_ACTION, 0, ACTION_REG,	
+	{ "dont-always-use-fragments", NO_ALWAYS_FRAGS_ACTION, 0, ACTION_REG,
 						NULL, no_always_frag_action},
 	{ "compressed", COMPRESSED_ACTION, 0, ACTION_REG, NULL, comp_action},
 	{ "uncompressed", UNCOMPRESSED_ACTION, 0, ACTION_REG, NULL,
@@ -2353,3 +2353,4 @@ static struct action_entry action_table[] = {
 	{ "move", MOVE_ACTION, -2, ACTION_ALL_LNK, NULL, NULL},
 	{ "", 0, -1, 0, NULL, NULL}
 };
+

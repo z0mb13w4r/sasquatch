@@ -73,3 +73,4 @@ struct gzip_stream {
 	struct gzip_strategy strategy[0];
 };
 #endif
+

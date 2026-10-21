@@ -74,7 +74,7 @@ int read_fragment_table_4(long long *directory_table_end)
 		}
 	}
 
-	for(i = 0; i < sBlk.s.fragments; i++) 
+	for(i = 0; i < sBlk.s.fragments; i++)
 		SQUASHFS_INSWAP_FRAGMENT_ENTRY(&fragment_table[i]);
 
 	*directory_table_end = fragment_table_index[0];
@@ -106,7 +106,7 @@ struct inode *read_inode_4(unsigned int start_block, unsigned int offset)
 
 	if(bytes == -1)
 		EXIT_UNSQUASH("read_inode: inode table block %lld not found\n",
-			start); 		
+			start);
 
 	SQUASHFS_SWAP_BASE_INODE_HEADER(block_ptr, &header.base);
 
@@ -159,7 +159,7 @@ struct inode *read_inode_4(unsigned int start_block, unsigned int offset)
 			i.block_ptr = block_ptr + sizeof(*inode);
 			i.xattr = SQUASHFS_INVALID_XATTR;
 			break;
-		}	
+		}
 		case SQUASHFS_LREG_TYPE: {
 			struct squashfs_lreg_inode_header *inode = &header.lreg;
 
@@ -179,7 +179,7 @@ struct inode *read_inode_4(unsigned int start_block, unsigned int offset)
 			i.block_ptr = block_ptr + sizeof(*inode);
 			i.xattr = inode->xattr;
 			break;
-		}	
+		}
 		case SQUASHFS_SYMLINK_TYPE:
 		case SQUASHFS_LSYMLINK_TYPE: {
 			struct squashfs_symlink_inode_header *inode = &header.symlink;
@@ -204,8 +204,8 @@ struct inode *read_inode_4(unsigned int start_block, unsigned int offset)
 				i.xattr = SQUASHFS_INVALID_XATTR;
 			break;
 		}
- 		case SQUASHFS_BLKDEV_TYPE:
-	 	case SQUASHFS_CHRDEV_TYPE: {
+		case SQUASHFS_BLKDEV_TYPE:
+		case SQUASHFS_CHRDEV_TYPE: {
 			struct squashfs_dev_inode_header *inode = &header.dev;
 
 			SQUASHFS_SWAP_DEV_INODE_HEADER(block_ptr, inode);
@@ -214,8 +214,8 @@ struct inode *read_inode_4(unsigned int start_block, unsigned int offset)
 			i.xattr = SQUASHFS_INVALID_XATTR;
 			break;
 		}
- 		case SQUASHFS_LBLKDEV_TYPE:
-	 	case SQUASHFS_LCHRDEV_TYPE: {
+		case SQUASHFS_LBLKDEV_TYPE:
+		case SQUASHFS_LCHRDEV_TYPE: {
 			struct squashfs_ldev_inode_header *inode = &header.ldev;
 
 			SQUASHFS_SWAP_LDEV_INODE_HEADER(block_ptr, inode);
@@ -297,16 +297,16 @@ struct dir *squashfs_opendir_4(unsigned int block_start, unsigned int offset,
 	bytes += (*i)->offset;
 	size = (*i)->data + bytes - 3;
 
-	while(bytes < size) {			
+	while(bytes < size) {
 		SQUASHFS_SWAP_DIR_HEADER(directory_table + bytes, &dirh);
-	
+
 		dir_count = dirh.count + 1;
 		TRACE("squashfs_opendir: Read directory header @ byte position "
 			"%d, %d directory entries\n", bytes, dir_count);
 		bytes += sizeof(dirh);
 
 		/* dir_count should never be larger than 256 */
-	 	if(dir_count > 256)
+		if(dir_count > 256)
 			goto corrupted;
 
 		while(dir_count--) {
@@ -390,3 +390,4 @@ int read_uids_guids_4()
 
 	return TRUE;
 }
+

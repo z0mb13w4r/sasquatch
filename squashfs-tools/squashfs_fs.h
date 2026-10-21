@@ -24,7 +24,7 @@
  * squashfs_fs.h
  */
 
-#define SQUASHFS_CACHED_FRAGMENTS	CONFIG_SQUASHFS_FRAGMENT_CACHE_SIZE	
+#define SQUASHFS_CACHED_FRAGMENTS	CONFIG_SQUASHFS_FRAGMENT_CACHE_SIZE
 #define SQUASHFS_MAJOR			4
 #define SQUASHFS_MINOR			0
 #define SQUASHFS_MAGIC			0x73717368
@@ -277,6 +277,22 @@ typedef long long		squashfs_inode;
 #define LZO_COMPRESSION		3
 #define XZ_COMPRESSION		4
 #define LZ4_COMPRESSION		5
+// CJH: Added #defines for additional decompressors
+#define LZMA_WRT_COMPRESSION        6
+#define LZMA_ADAPTIVE_COMPRESSION   7
+#define LZMA_ALT_COMPRESSION        8
+
+// CJH: A generic super block structure used for auto-detecting endianess
+#include <stdint.h>
+#define SQUASHFS_MIN_VERSION 1
+#define SQUASHFS_MAX_VERSION 4
+struct squashfs_generic_super_block {
+    uint32_t s_magic;
+    uint32_t inodes;
+    uint8_t  filler[20];
+    uint16_t s_major;
+    uint16_t s_minor;
+} __attribute__ ((packed));
 
 struct squashfs_super_block {
 	unsigned int		s_magic;
@@ -313,7 +329,7 @@ struct squashfs_base_inode_header {
 	unsigned short		uid;
 	unsigned short		guid;
 	int			mtime;
-	unsigned int 		inode_number;
+	unsigned int		inode_number;
 };
 
 struct squashfs_ipc_inode_header {
@@ -322,7 +338,7 @@ struct squashfs_ipc_inode_header {
 	unsigned short		uid;
 	unsigned short		guid;
 	int			mtime;
-	unsigned int 		inode_number;
+	unsigned int		inode_number;
 	unsigned int		nlink;
 };
 
@@ -332,7 +348,7 @@ struct squashfs_lipc_inode_header {
 	unsigned short		uid;
 	unsigned short		guid;
 	int			mtime;
-	unsigned int 		inode_number;
+	unsigned int		inode_number;
 	unsigned int		nlink;
 	unsigned int		xattr;
 };
@@ -343,30 +359,30 @@ struct squashfs_dev_inode_header {
 	unsigned short		uid;
 	unsigned short		guid;
 	int			mtime;
-	unsigned int 		inode_number;
+	unsigned int		inode_number;
 	unsigned int		nlink;
 	unsigned int		rdev;
 };
-	
+
 struct squashfs_ldev_inode_header {
 	unsigned short		inode_type;
 	unsigned short		mode;
 	unsigned short		uid;
 	unsigned short		guid;
 	int			mtime;
-	unsigned int 		inode_number;
+	unsigned int		inode_number;
 	unsigned int		nlink;
 	unsigned int		rdev;
 	unsigned int		xattr;
 };
-	
+
 struct squashfs_symlink_inode_header {
 	unsigned short		inode_type;
 	unsigned short		mode;
 	unsigned short		uid;
 	unsigned short		guid;
 	int			mtime;
-	unsigned int 		inode_number;
+	unsigned int		inode_number;
 	unsigned int		nlink;
 	unsigned int		symlink_size;
 	char			symlink[0];
@@ -378,7 +394,7 @@ struct squashfs_reg_inode_header {
 	unsigned short		uid;
 	unsigned short		guid;
 	int			mtime;
-	unsigned int 		inode_number;
+	unsigned int		inode_number;
 	unsigned int		start_block;
 	unsigned int		fragment;
 	unsigned int		offset;
@@ -392,7 +408,7 @@ struct squashfs_lreg_inode_header {
 	unsigned short		uid;
 	unsigned short		guid;
 	int			mtime;
-	unsigned int 		inode_number;
+	unsigned int		inode_number;
 	squashfs_block		start_block;
 	long long		file_size;
 	long long		sparse;
@@ -409,7 +425,7 @@ struct squashfs_dir_inode_header {
 	unsigned short		uid;
 	unsigned short		guid;
 	int			mtime;
-	unsigned int 		inode_number;
+	unsigned int		inode_number;
 	unsigned int		start_block;
 	unsigned int		nlink;
 	unsigned short		file_size;
@@ -423,7 +439,7 @@ struct squashfs_ldir_inode_header {
 	unsigned short		uid;
 	unsigned short		guid;
 	int			mtime;
-	unsigned int 		inode_number;
+	unsigned int		inode_number;
 	unsigned int		nlink;
 	unsigned int		file_size;
 	unsigned int		start_block;
@@ -446,7 +462,7 @@ union squashfs_inode_header {
 	struct squashfs_ipc_inode_header	ipc;
 	struct squashfs_lipc_inode_header	lipc;
 };
-	
+
 struct squashfs_dir_entry {
 	unsigned short		offset;
 	short			inode_number;
@@ -488,4 +504,22 @@ struct squashfs_xattr_table {
 	unsigned int		unused;
 };
 
+// CJH: Override structures (see usage)
+struct lzma_override_property
+{
+    int set;
+    int value;
+};
+struct override_table
+{
+    int s_major;
+    int s_minor;
+    struct lzma_override_property lc;
+    struct lzma_override_property lp;
+    struct lzma_override_property pb;
+    struct lzma_override_property dictionary_size;
+    struct lzma_override_property offset;
+};
+
 #endif
+

@@ -73,7 +73,7 @@ void *restore_thrd(void *arg)
 		if((sig == SIGINT || sig == SIGTERM) && !interrupted) {
 			ERROR("Interrupting will restore original "
 				"filesystem!\n");
-                	ERROR("Interrupt again to quit\n");
+			ERROR("Interrupt again to quit\n");
 			interrupted = TRUE;
 			continue;
 		}
@@ -153,3 +153,4 @@ pthread_t *init_restore_thread()
 	pthread_create(&restore_thread, NULL, restore_thrd, NULL);
 	return &restore_thread;
 }
+

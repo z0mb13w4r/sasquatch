@@ -26,3 +26,4 @@
 
 extern pthread_t *init_restore_thread();
 #endif
+

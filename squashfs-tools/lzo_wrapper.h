@@ -76,3 +76,4 @@ int lzo1x_999_wrapper(const lzo_bytep, lzo_uint, lzo_bytep, lzo_uintp,
 		lzo_voidp);
 
 #endif
+

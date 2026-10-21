@@ -361,3 +361,4 @@ void sort_files_and_write(struct dir_info *dir)
 					entry->dir->inode->buf.st_size);
 		}
 }
+

@@ -40,7 +40,7 @@ struct pseudo_entry {
 	struct pseudo		*pseudo;
 	struct pseudo_dev	*dev;
 };
-	
+
 struct pseudo {
 	int			names;
 	int			count;
@@ -56,3 +56,4 @@ extern int pseudo_exec_file(struct pseudo_dev *, int *);
 extern struct pseudo *get_pseudo();
 extern void dump_pseudos();
 #endif
+

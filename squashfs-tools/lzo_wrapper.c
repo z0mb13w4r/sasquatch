@@ -37,7 +37,7 @@ static struct lzo_algorithm lzo[] = {
 	{ "lzo1x_1_12", LZO1X_1_12_MEM_COMPRESS, lzo1x_1_12_compress },
 	{ "lzo1x_1_15", LZO1X_1_15_MEM_COMPRESS, lzo1x_1_15_compress },
 	{ "lzo1x_999", LZO1X_999_MEM_COMPRESS, lzo1x_999_wrapper },
-	{ NULL, 0, NULL } 
+	{ NULL, 0, NULL }
 };
 
 /* default LZO compression algorithm and compression level */
@@ -303,7 +303,7 @@ void lzo_display_options(void *buffer, int size)
 failed:
 	fprintf(stderr, "lzo: error reading stored compressor options from "
 		"filesystem!\n");
-}	
+}
 
 
 /*
@@ -347,7 +347,7 @@ static int lzo_compress(void *strm, void *dest, void *src,  int size,
 	res = lzo[algorithm].compress(src, size, stream->buffer, &compsize,
 							stream->workspace);
 	if(res != LZO_E_OK)
-		goto failed;	
+		goto failed;
 
 	/* Successful compression, however, we need to check that
 	 * the compressed size is not larger than the available
@@ -437,3 +437,4 @@ struct compressor lzo_comp_ops = {
 	.name = "lzo",
 	.supported = 1
 };
+

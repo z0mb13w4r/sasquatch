@@ -72,7 +72,7 @@ void write_xattr(char *pathname, unsigned int xattr)
 					 * is rather annoying
 					 */
 					ERROR("write_xattr: failed to write "
-						"xattr %s for file %s because " 
+						"xattr %s for file %s because "
 						"extended attributes are not "
 						"supported by the destination "
 						"filesystem\n",
@@ -96,7 +96,7 @@ void write_xattr(char *pathname, unsigned int xattr)
 					 * then suppress the error messsage
 					 */
 					ERROR("write_xattr: failed to write "
-						"xattr %s for file %s because " 
+						"xattr %s for file %s because "
 						"no extended attribute space "
 						"remaining (per file or "
 						"filesystem limit)\n",
@@ -137,3 +137,4 @@ void write_xattr(char *pathname, unsigned int xattr)
 
 	free_xattr(xattr_list, count);
 }
+

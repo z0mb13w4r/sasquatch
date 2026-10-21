@@ -30,7 +30,7 @@
 #define XATTR_VALUE_OOL_SIZE	sizeof(long long)
 
 /* maximum size of xattr value data that will be inlined */
-#define XATTR_INLINE_MAX 	128
+#define XATTR_INLINE_MAX	128
 
 /* the target size of an inode's xattr name:value list.  If it
  * exceeds this, then xattr value data will be successively out of lined
@@ -148,3 +148,4 @@ static inline struct xattr_list *get_xattr(int i, unsigned int *count, int j)
 #define XATTR_DEF 1
 #endif
 #endif
+
