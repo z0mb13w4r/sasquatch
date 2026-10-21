@@ -50,6 +50,8 @@ pthread_mutex_t	fragment_mutex;
 //      until a proper fix is implemented.
 int processors = 1;
 
+int verbose = FALSE;
+
 struct super_block sBlk;
 squashfs_operations s_ops;
 // CJH: Initialize to NULL
@@ -1838,11 +1840,11 @@ int read_super(char *source)
 	/*
 	 * Try to read a Squashfs 4 superblock
 	 */
-	read_fs_bytes(fd, SQUASHFS_START, sizeof(struct squashfs_super_block),
+    read_fs_bytes(fd, SQUASHFS_START, sizeof(struct squashfs_super_block),
 		&sBlk_4);
 	// CJH: swap detection already done generically above
     //swap = sBlk_4.s_magic != SQUASHFS_MAGIC;
-	SQUASHFS_INSWAP_SUPER_BLOCK(&sBlk_4);
+    SQUASHFS_INSWAP_SUPER_BLOCK(&sBlk_4);
 
     /*
      * CJH: Don't consider it an error if SQUASHFS_MAGIC doesn't match
